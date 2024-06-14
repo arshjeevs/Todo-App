@@ -1,10 +1,12 @@
 const express = require('express')
 const app = express()
+const PORT = 3000
 const { CreateTodo, UpdateTodo } = require('./types')
+const { UserModel } = require('../Backend/db/index')
 app.use(express.json())
 
 
-app.post("/todo", function(req,res) {
+app.post("/todo", async function(req,res) {
     const title = req.body.title
     const description = req.body.description
 
@@ -19,13 +21,33 @@ app.post("/todo", function(req,res) {
         })
         return
     }
+
+    const response = await UserModel.create({
+        title,
+        description,
+        completed: false,
+    })
+
+    if(!response){
+        res.status(500).json({
+            message: "Something went wrong"
+        })
+        return
+    }
+
+    res.status(200).json({
+        message: "Todo Created Successfully"
+    })
 })
 
-app.get("/todos", function(req,res) {
-
+app.get("/todos", async function(req,res) {
+    const todos = await UserModel.find({})
+    res.json({
+        todos
+    })
 })
 
-app.put("/completed", function(req,res) {
+app.put("/completed", async function(req,res) {
     const body = req.body;
     const validation = UpdateTodo.safeParse(body)
 
@@ -35,6 +57,17 @@ app.put("/completed", function(req,res) {
         })
         return
     }
+
+    await UserModel.updateMany({
+        _id: req.body.id
+    },{
+        completed: true
+    })
+
+    res.json({
+        msg: "Updated"
+    })
+
 })
 
 app.listen(PORT,() => {
